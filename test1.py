@@ -26,31 +26,19 @@ def upload_file():
     else:
         return jsonify({'error': 'Invalid file type'}), 400
 
-
-from flask import Flask, request, jsonify
-import pandas as pd
-
-app = Flask(__name__)
-
-
-@app.route('/process', methods=['POST'])
+@app.route('/build-report', methods=['POST'])
 def process_data():
     data = request.json
 
-    # בדוק אם המפתח 'operations' קיים במילון
     if 'operations' not in data:
         return jsonify({'error': 'Missing "operations" key in request data'}), 400
-
     operations = data['operations']
-
     file_path = data.get('file_path', '')
     if not file_path:
         return jsonify({'error': 'Missing "file_path" key in request data'}), 400
-
     report = {}
     xls = pd.ExcelFile(file_path)
     available_sheets = xls.sheet_names
-
     for operation_info in operations:
         sheet_name = operation_info.get('sheet_name')
         if sheet_name not in available_sheets:
@@ -60,8 +48,6 @@ def process_data():
         columns = operation_info.get('columns', [])
 
         df = pd.read_excel(file_path, sheet_name=sheet_name)
-
-        # בדוק אם כל העמודות קיימות בגיליון
         missing_columns = [col for col in columns if col not in df.columns]
         if missing_columns:
             return jsonify({'error': f'Missing columns in sheet {sheet_name}: {missing_columns}'}), 400
@@ -76,9 +62,6 @@ def process_data():
         report[sheet_name] = result
 
     return jsonify(report)
-
-
-
 
 @app.route('/generate_pdf', methods=['POST'])
 def generate_pdf():
@@ -96,7 +79,6 @@ def generate_pdf():
     pdf.output(pdf_output_path)
 
     return jsonify({'pdf_path': pdf_output_path})
-
 
 @app.route('/plot', methods=['POST'])
 def plot_graph():
